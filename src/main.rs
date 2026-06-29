@@ -11,7 +11,7 @@ use std::process;
 #[derive(Parser)]
 #[command(
     name = "clip",
-    about = "System clipboard bridge — copy stdin to clipboard, paste clipboard to stdout.\n\nWhen no subcommand is given, mode is auto-detected:\n  piped input → copy,  terminal → paste.",
+    about = "System clipboard bridge — copy stdin to clipboard (like tee), paste clipboard to stdout.\n\nWhen no subcommand is given, mode is auto-detected:\n  piped input → copy + tee,  terminal → paste.",
     version
 )]
 struct Cli {
