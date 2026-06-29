@@ -9,24 +9,87 @@ permissions:
   contents: write
 
 jobs:
+  # ── 三端构建 (matrix) ─────────────────────────────────────────────
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset: clip-x86_64-linux-gnu
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            asset: clip-x86_64-linux-musl
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            asset: clip-aarch64-linux-gnu
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            asset: clip-x86_64-macos
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            asset: clip-aarch64-macos
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            asset: clip-x86_64-windows.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install cross (musl build)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Build (native)
+        if: matrix.target != 'x86_64-unknown-linux-musl'
+        run: cargo build --release --target ${{ matrix.target }}
+
+      - name: Build (musl via cross)
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Prepare artifact (Unix)
+        if: runner.os != 'Windows'
+        run: cp target/${{ matrix.target }}/release/clip ${{ matrix.asset }}
+
+      - name: Prepare artifact (Windows)
+        if: runner.os == 'Windows'
+        run: cp target/${{ matrix.target }}/release/clip.exe ${{ matrix.asset }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+
+  # ── 发布 (收集所有产物，统一发版) ────────────────────────────────
+  release:
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-
-      - name: Build release binary
-        run: cargo build --release
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
 
       # ── 生成 Changelog（版本发版）─────────────────────────────────
-      - name: Generate changelog
+      - name: Generate changelog (versioned)
         id: changelog
         if: startsWith(github.ref, 'refs/tags/v')
         uses: mikepenz/release-changelog-builder-action@v6
@@ -41,7 +104,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: target/release/clip
+          files: dist/*
           body: ${{ steps.changelog.outputs.changelog }}
 
       - name: Update stable rolling tag
@@ -59,7 +122,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: stable
-          files: target/release/clip
+          files: dist/*
           body: ${{ steps.changelog.outputs.changelog }}
 
       # ── 生成 Changelog（Nightly）─────────────────────────────────
@@ -89,6 +152,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: nightly
-          files: target/release/clip
+          files: dist/*
           prerelease: true
           body: ${{ steps.changelog_nightly.outputs.changelog }}
