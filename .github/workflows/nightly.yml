@@ -1,15 +1,42 @@
-name: Release
+name: Nightly
 
 on:
-  push:
-    tags: ["v*"]
+  schedule:
+    - cron: '0 0 * * *'
 
 permissions:
   contents: write
 
 jobs:
+  # ── 检查是否有变更 ─────────────────────────────────────────────────
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for changes since last nightly
+        id: check
+        run: |
+          if git rev-parse --verify nightly >/dev/null 2>&1; then
+            if [ "$(git rev-parse nightly)" = "$(git rev-parse HEAD)" ]; then
+              echo "proceed=false" >> "$GITHUB_OUTPUT"
+              echo "No changes since last nightly, skipping."
+            else
+              echo "proceed=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+            echo "First nightly build."
+          fi
+
   # ── 三端构建 (matrix) ─────────────────────────────────────────────
   build:
+    needs: check
+    if: needs.check.outputs.proceed == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -73,7 +100,7 @@ jobs:
           name: ${{ matrix.asset }}
           path: ${{ matrix.asset }}
 
-  # ── 发布 ─────────────────────────────────────────────────────────
+  # ── 发布 nightly prerelease ───────────────────────────────────────
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -92,27 +119,22 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v6
         with:
           configuration: .github/changelog-config.json
-          toTag: ${{ github.ref_name }}
+          fromTag: stable
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish versioned release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: dist/*
-          body: ${{ steps.changelog.outputs.changelog }}
-
-      - name: Update stable rolling tag
+      - name: Update nightly rolling tag
         run: |
-          git tag -f stable
-          git push -f origin stable
+          git tag -f nightly
+          git push -f origin nightly
 
-      - name: Delete old stable rolling release
-        run: gh release delete stable --yes || true
+      - name: Delete old nightly rolling release
+        run: gh release delete nightly --yes || true
 
-      - name: Publish stable rolling release
+      - name: Publish nightly rolling release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: stable
+          tag_name: nightly
           files: dist/*
+          prerelease: true
           body: ${{ steps.changelog.outputs.changelog }}
