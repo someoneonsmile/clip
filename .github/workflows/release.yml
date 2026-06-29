@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build release binary
+        run: cargo build --release
+
+      # ── Stable（推送 v* tag 时触发）─────────────────────────────
+      - name: Publish versioned release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: target/release/clip
+          generate_release_notes: true
+
+      - name: Update stable rolling tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          git tag -f stable
+          git push -f origin stable
+
+      - name: Delete old stable rolling release
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: gh release delete stable --yes || true
+
+      - name: Publish stable rolling release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: stable
+          files: target/release/clip
+          generate_release_notes: true
+
+      # ── Nightly（推送 main 分支时触发）──────────────────────────
+      - name: Update nightly rolling tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git tag -f nightly
+          git push -f origin nightly
+
+      - name: Delete old nightly rolling release
+        if: github.ref == 'refs/heads/main'
+        run: gh release delete nightly --yes || true
+
+      - name: Publish nightly rolling release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          files: target/release/clip
+          prerelease: true
+          generate_release_notes: true
