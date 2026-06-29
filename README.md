@@ -6,7 +6,7 @@ System clipboard bridge for the terminal. Pipe content **in**, paste content **o
 
 ### Pre-built binaries
 
-Download from [GitHub Releases](https://github.com/someoneonsmile/clip/releases) (latest: `stable` rolling tag).
+Download from [GitHub Releases](https://github.com/someoneonsmile/clip/releases) (latest stable release).
 
 | Platform                    | Asset                     |
 | --------------------------- | ------------------------- |

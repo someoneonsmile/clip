@@ -42,17 +42,3 @@ jobs:
           files: dist/*
           body: ${{ steps.changelog.outputs.changelog }}
 
-      - name: Update stable rolling tag
-        run: |
-          git tag -f stable
-          git push -f origin stable
-
-      - name: Delete old stable rolling release
-        run: gh release delete stable --yes || true
-
-      - name: Publish stable rolling release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: stable
-          files: dist/*
-          body: ${{ steps.changelog.outputs.changelog }}

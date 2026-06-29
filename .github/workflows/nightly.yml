@@ -50,12 +50,20 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: Get latest stable release tag
+        id: latest
+        run: |
+          TAG=$(gh release view --json tagName -q .tagName)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Generate changelog
         id: changelog
         uses: mikepenz/release-changelog-builder-action@v6
         with:
           configuration: .github/changelog-config.json
-          fromTag: stable
+          fromTag: ${{ steps.latest.outputs.tag }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
