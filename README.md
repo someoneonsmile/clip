@@ -36,11 +36,11 @@ Requires Rust toolchain (1.85+ for edition 2024).
 
 ```bash
 # Auto-detect mode (no subcommand)
-echo "hello" | clip      # copy stdin to clipboard
+echo "hello" | clip      # copy stdin to clipboard + tee to stdout
 clip                     # paste clipboard to stdout
 
 # Explicit subcommands
-echo "hello" | clip copy # same as piped auto-detect
+echo "hello" | clip copy # copy silently (no tee)
 clip paste               # same as terminal auto-detect
 
 # Pipe output
@@ -95,6 +95,7 @@ No configuration needed. Just use `clip` the same way on local and remote machin
 stdin → system clipboard (local)
      → file cache (~/.cache/clipboard/data)
      → OSC52 escape seq (SSH only, forwarded to terminal)
+     → stdout (auto-detect only, like tee)
 ```
 
 ### Paste (`clip`)
