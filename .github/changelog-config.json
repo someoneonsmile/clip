@@ -1,0 +1,37 @@
+{
+  "mode": "COMMIT",
+  "categories": [
+    {
+      "title": "## 🚀 新功能",
+      "labels": ["feat", "feature"]
+    },
+    {
+      "title": "## 🐛 修复",
+      "labels": ["fix", "bug", "bugfix"]
+    },
+    {
+      "title": "## 📚 文档",
+      "labels": ["docs", "documentation"]
+    },
+    {
+      "title": "## ⚡ 性能",
+      "labels": ["perf", "performance"]
+    },
+    {
+      "title": "## 🔧 维护",
+      "labels": ["chore", "refactor", "ci", "test", "build", "deps"]
+    }
+  ],
+  "label_extractor": [
+    {
+      "pattern": "^(\\w+)(?:\\(.*\\))?!?:\\s*",
+      "target": "$1"
+    }
+  ],
+  "sort": "ASC",
+  "template": "#{{CHANGELOG}}",
+  "pr_template": "- #{{TITLE}}",
+  "max_tags_to_fetch": 50,
+  "max_back_track_time_days": 365,
+  "exclude_merge_branches": ["main"]
+}

@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -23,13 +25,24 @@ jobs:
       - name: Build release binary
         run: cargo build --release
 
+      # ── 生成 Changelog（版本发版）─────────────────────────────────
+      - name: Generate changelog
+        id: changelog
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: mikepenz/release-changelog-builder-action@v6
+        with:
+          configuration: .github/changelog-config.json
+          toTag: ${{ github.ref_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       # ── Stable（推送 v* tag 时触发）─────────────────────────────
       - name: Publish versioned release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: target/release/clip
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.changelog }}
 
       - name: Update stable rolling tag
         if: startsWith(github.ref, 'refs/tags/v')
@@ -47,7 +60,18 @@ jobs:
         with:
           tag_name: stable
           files: target/release/clip
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.changelog }}
+
+      # ── 生成 Changelog（Nightly）─────────────────────────────────
+      - name: Generate changelog (nightly)
+        id: changelog_nightly
+        if: github.ref == 'refs/heads/main'
+        uses: mikepenz/release-changelog-builder-action@v6
+        with:
+          configuration: .github/changelog-config.json
+          fromTag: stable
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # ── Nightly（推送 main 分支时触发）──────────────────────────
       - name: Update nightly rolling tag
@@ -67,4 +91,4 @@ jobs:
           tag_name: nightly
           files: target/release/clip
           prerelease: true
-          generate_release_notes: true
+          body: ${{ steps.changelog_nightly.outputs.changelog }}
