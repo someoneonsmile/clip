@@ -31,7 +31,7 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Command::Copy) => store(),
+        Some(Command::Copy) => { let _ = store(); },
         Some(Command::Paste) => read(),
         None => {
             // 判断模式：stdin 是否为终端（TTY）
@@ -40,14 +40,20 @@ fn main() {
             if io::stdin().is_terminal() {
                 read();
             } else {
-                store();
+                let content = store();
+                if !content.is_empty() {
+                    let mut stdout = io::stdout().lock();
+                    let _ = stdout.write_all(&content);
+                    let _ = stdout.write_all(b"\n");
+                }
             }
         }
     }
 }
 
 /// 存储模式：读取 stdin 全部内容，写入系统剪贴板 + 文件缓存 + OSC52(SSH)
-fn store() {
+/// 返回实际存储的内容（已去除末尾换行符），调用方可将其 tee 到 stdout
+fn store() -> Vec<u8> {
     let mut content = Vec::new();
     if let Err(e) = io::stdin().read_to_end(&mut content) {
         eprintln!("failed to read stdin: {}", e);
@@ -61,7 +67,7 @@ fn store() {
 
     if content.is_empty() {
         eprintln!("warning: empty input, clipboard unchanged");
-        return;
+        return Vec::new();
     }
 
     let ssh = is_ssh();
@@ -99,6 +105,8 @@ fn store() {
             eprintln!("failed to write cache: {}", e);
         }
     }
+
+    content
 }
 
 /// 读取模式：优先系统剪贴板（本地），SSH 下直接读文件缓存，输出到 stdout
