@@ -26,6 +26,11 @@ fn store() {
         process::exit(1);
     }
 
+    // 去掉末尾换行符（echo 等命令默认会追加 \n）
+    if content.last() == Some(&b'\n') {
+        content.pop();
+    }
+
     if content.is_empty() {
         eprintln!("warning: empty input, clipboard unchanged");
         return;
