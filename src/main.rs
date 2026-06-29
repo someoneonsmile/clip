@@ -1,5 +1,6 @@
 use arboard::Clipboard;
 use base64::Engine;
+use clap::{Parser, Subcommand};
 use is_terminal::IsTerminal;
 use std::env;
 use std::fs;
@@ -7,14 +8,41 @@ use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::process;
 
+#[derive(Parser)]
+#[command(
+    name = "clip",
+    about = "System clipboard bridge — copy stdin to clipboard, paste clipboard to stdout.\n\nWhen no subcommand is given, mode is auto-detected:\n  piped input → copy,  terminal → paste.",
+    version
+)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Copy stdin content to clipboard
+    Copy,
+    /// Paste clipboard content to stdout
+    Paste,
+}
+
 fn main() {
-    // 判断模式：stdin 是否为终端（TTY）
-    //   - 非 TTY（管道输入）→ 存储模式
-    //   - TTY（交互终端）→ 读取模式
-    if io::stdin().is_terminal() {
-        read();
-    } else {
-        store();
+    let cli = Cli::parse();
+
+    match cli.command {
+        Some(Command::Copy) => store(),
+        Some(Command::Paste) => read(),
+        None => {
+            // 判断模式：stdin 是否为终端（TTY）
+            //   - 非 TTY（管道输入）→ 存储模式
+            //   - TTY（交互终端）→ 读取模式
+            if io::stdin().is_terminal() {
+                read();
+            } else {
+                store();
+            }
+        }
     }
 }
 
