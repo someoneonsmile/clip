@@ -8,14 +8,14 @@ System clipboard bridge for the terminal. Pipe content **in**, paste content **o
 
 Download from [GitHub Releases](https://github.com/someoneonsmile/clip/releases) (latest stable release).
 
-| Platform                    | Asset                     |
-| --------------------------- | ------------------------- |
-| Linux x86_64 (glibc)        | `clip-x86_64-linux-gnu`   |
-| Linux x86_64 (musl, static) | `clip-x86_64-linux-musl`  |
-| Linux ARM64                 | `clip-aarch64-linux-gnu`  |
-| macOS Intel                 | `clip-x86_64-macos`       |
-| macOS Apple Silicon         | `clip-aarch64-macos`      |
-| Windows x86_64              | `clip-x86_64-windows.exe` |
+| Platform                    | Asset                                                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Linux x86_64 (glibc)        | [`clip-x86_64-linux-gnu`](https://github.com/someoneonsmile/clip/releases/latest/download/clip-x86_64-linux-gnu)     |
+| Linux x86_64 (musl, static) | [`clip-x86_64-linux-musl`](https://github.com/someoneonsmile/clip/releases/latest/download/clip-x86_64-linux-musl)    |
+| Linux ARM64                 | [`clip-aarch64-linux-gnu`](https://github.com/someoneonsmile/clip/releases/latest/download/clip-aarch64-linux-gnu)    |
+| macOS Intel                 | [`clip-x86_64-macos`](https://github.com/someoneonsmile/clip/releases/latest/download/clip-x86_64-macos)             |
+| macOS Apple Silicon         | [`clip-aarch64-macos`](https://github.com/someoneonsmile/clip/releases/latest/download/clip-aarch64-macos)           |
+| Windows x86_64              | [`clip-x86_64-windows.exe`](https://github.com/someoneonsmile/clip/releases/latest/download/clip-x86_64-windows.exe) |
 
 ```bash
 # Linux / macOS example
