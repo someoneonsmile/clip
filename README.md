@@ -1,4 +1,4 @@
-# clip <sup>v1.1.0</sup>
+# clip
 
 System clipboard bridge for the terminal. Pipe content **in**, paste content **out**. Works over SSH via OSC52.
 
@@ -8,14 +8,14 @@ System clipboard bridge for the terminal. Pipe content **in**, paste content **o
 
 Download from [GitHub Releases](https://github.com/someoneonsmile/clip/releases) (latest: `stable` rolling tag).
 
-| Platform | Asset |
-|----------|-------|
-| Linux x86_64 (glibc) | `clip-x86_64-linux-gnu` |
-| Linux x86_64 (musl, static) | `clip-x86_64-linux-musl` |
-| Linux ARM64 | `clip-aarch64-linux-gnu` |
-| macOS Intel | `clip-x86_64-macos` |
-| macOS Apple Silicon | `clip-aarch64-macos` |
-| Windows x86_64 | `clip-x86_64-windows.exe` |
+| Platform                    | Asset                     |
+| --------------------------- | ------------------------- |
+| Linux x86_64 (glibc)        | `clip-x86_64-linux-gnu`   |
+| Linux x86_64 (musl, static) | `clip-x86_64-linux-musl`  |
+| Linux ARM64                 | `clip-aarch64-linux-gnu`  |
+| macOS Intel                 | `clip-x86_64-macos`       |
+| macOS Apple Silicon         | `clip-aarch64-macos`      |
+| Windows x86_64              | `clip-x86_64-windows.exe` |
 
 ```bash
 # Linux / macOS example
@@ -82,9 +82,9 @@ No configuration needed. Just use `clip` the same way on local and remote machin
 
 ### Exit codes
 
-| Code | Meaning |
-|------|---------|
-| 0    | Success |
+| Code | Meaning                                                 |
+| ---- | ------------------------------------------------------- |
+| 0    | Success                                                 |
 | 1    | Stdin read failed, or clipboard empty / cache not found |
 
 ## How it works
