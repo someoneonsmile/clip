@@ -80,12 +80,6 @@ Each subcommand also accepts `--help` for detailed usage.
 
 No configuration needed. Just use `clip` the same way on local and remote machines.
 
-### Exit codes
-
-| Code | Meaning                                                 |
-| ---- | ------------------------------------------------------- |
-| 0    | Success                                                 |
-| 1    | Stdin read failed, or clipboard empty / cache not found |
 
 ## How it works
 
