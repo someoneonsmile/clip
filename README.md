@@ -52,10 +52,10 @@ clip paste | xargs ...    # use clipboard as argument
 
 ```
 $ clip --help
-System clipboard bridge — copy stdin to clipboard, paste clipboard to stdout.
+System clipboard bridge — copy stdin to clipboard (like tee), paste clipboard to stdout.
 
 When no subcommand is given, mode is auto-detected:
-  piped input → copy,  terminal → paste.
+  piped input → copy + tee,  terminal → paste.
 
 Usage: clip [COMMAND]
 
