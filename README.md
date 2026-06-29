@@ -106,24 +106,3 @@ file cache (~/.cache/clipboard/data)
   ↓
 stdout
 ```
-
-## Development
-
-```bash
-just check       # 类型检查（cargo check）
-just build       # 编译 debug 版本
-just release     # 编译 release 版本
-just run         # 运行 debug 版本
-just test        # 运行测试
-just fmt         # 格式化代码
-just lint        # Clippy lint
-just lint-strict # Clippy 严格模式（warnings as errors）
-just fix         # Clippy 自动修复
-just install     # 安装到 ~/.cargo/bin/
-just watch       # 监听文件变更自动 check
-just ci          # 全量检查（fmt → clippy → test → release）
-```
-
-## License
-
-MIT
