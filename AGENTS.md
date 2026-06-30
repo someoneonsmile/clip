@@ -31,7 +31,7 @@ Run with args: `just run -- --help` or `just run-release -- --help`.
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `ci.yml` | push/PR to `main` | `fmt-check`, `lint-strict`, `cargo test` |
-| `release.yml` | tag `v*` | calls `build.yml` (all targets), publishes GitHub Release with changelog |
+| `release.yml` | tag `v*` | calls `build.yml` (all targets), publishes GitHub Release with changelog, auto-updates AUR |
 | `nightly.yml` | daily cron | same as release but tagged `nightly` (prerelease, rolling) |
 
 ### Build matrix (release)
@@ -68,6 +68,16 @@ just aur-release VERSION  # update version, commit, push to AUR subtree
 ```
 
 AUR is maintained as a `git subtree` at remote `aur`.
+
+### Automated publishing
+
+`release.yml` 会在发布版本后自动更新 AUR 包（`aur` job）。流程：
+
+1. 更新 `aur/PKGBUILD` 中的 `pkgver`、重置 `pkgrel=1`
+2. 用 Arch Linux Docker 容器运行 `makepkg --printsrcinfo` 生成 `.SRCINFO`
+3. `git subtree push` 推送到 `ssh://aur@aur.archlinux.org/clip-cli-bin.git`
+
+**前置条件**：GitHub 仓库需要配置 secret `AUR_SSH_PRIVATE_KEY`（对应已上传到 AUR 账户的公钥）。
 
 ## Conventions
 
