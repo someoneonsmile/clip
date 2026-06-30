@@ -31,7 +31,9 @@ fn main() {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Command::Copy) => { let _ = store(); },
+        Some(Command::Copy) => {
+            let _ = store();
+        }
         Some(Command::Paste) => read(),
         None => {
             // 判断模式：stdin 是否为终端（TTY）
