@@ -63,7 +63,7 @@ jobs:
         id: changelog
         uses: mikepenz/release-changelog-builder-action@v6
         with:
-          configuration: .github/changelog-config.json
+          mode: COMMIT
           fromTag: ${{ steps.latest.outputs.tag }}
           toTag: ${{ github.sha }}
         env:
