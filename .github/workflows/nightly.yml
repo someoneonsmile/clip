@@ -53,7 +53,7 @@ jobs:
       - name: Get latest stable release tag
         id: latest
         run: |
-          TAG=$(gh release view --json tagName -q .tagName)
+          TAG=$(gh release list --exclude-pre-releases --limit 1 --json tagName -q '.[0].tagName')
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -64,6 +64,7 @@ jobs:
         with:
           configuration: .github/changelog-config.json
           fromTag: ${{ steps.latest.outputs.tag }}
+          toTag: ${{ github.sha }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
