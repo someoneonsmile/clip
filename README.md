@@ -24,6 +24,14 @@ curl -L -o /usr/local/bin/clip \
 chmod +x /usr/local/bin/clip
 ```
 
+### AUR (Arch Linux)
+
+```bash
+yay -S clip-cli-bin
+# 或
+paru -S clip-cli-bin
+```
+
 ### From source
 
 ```bash
