@@ -2,7 +2,7 @@ name: Nightly
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 permissions:
@@ -69,13 +69,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update nightly rolling tag
-        run: |
-          git tag -f nightly
-          git push -f origin nightly
-
       - name: Delete old nightly rolling release
-        run: gh release delete nightly --yes || true
+        run: gh release delete nightly --cleanup-tag --yes || true
 
       - name: Publish nightly rolling release
         uses: softprops/action-gh-release@v2
