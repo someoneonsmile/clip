@@ -27,9 +27,15 @@ chmod +x /usr/local/bin/clip
 ### AUR (Arch Linux)
 
 ```bash
+# 稳定版
 yay -S clip-cli-bin
 # 或
 paru -S clip-cli-bin
+
+# 每夜构建（最新 commit）
+yay -S clip-cli-nightly-bin
+# 或
+paru -S clip-cli-nightly-bin
 ```
 
 ### From source

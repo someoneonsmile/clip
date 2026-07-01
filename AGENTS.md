@@ -32,7 +32,7 @@ Run with args: `just run -- --help` or `just run-release -- --help`.
 |---|---|---|
 | `ci.yml` | push/PR to `main` | `fmt-check`, `lint-strict`, `cargo test` |
 | `release.yml` | tag `v*` | calls `build.yml` (all targets), publishes GitHub Release with changelog, auto-updates AUR |
-| `nightly.yml` | daily cron | same as release but tagged `nightly` (prerelease, rolling) |
+| `nightly.yml` | daily cron | same as release but tagged `nightly` (prerelease, rolling), auto-updates nightly AUR |
 
 ### Build matrix (release)
 
@@ -62,20 +62,32 @@ Dependencies: `arboard` (system clipboard), `base64`, `clap` (derive), `is-termi
 
 ## AUR
 
-```bash
-just aur-srcinfo          # regenerate .SRCINFO after editing PKGBUILD
-just aur-release VERSION  # update version, commit, push to AUR subtree
-```
+项目维护两个 AUR 包：
 
-AUR is maintained as a `git subtree` at remote `aur`.
+| 包名 | 子目录 | 远程 remote | 发布触发 |
+|---|---|---|---|
+| `clip-cli-bin` (稳定版) | `aur/` | `aur` → `clip-cli-bin.git` | `release.yml` (tag `v*`) |
+| `clip-cli-nightly-bin` (每夜构建) | `aur-nightly/` | `aur-nightly` → `clip-cli-nightly-bin.git` | `nightly.yml` (每日 cron) |
+
+两者通过 `git subtree` 维护，共享同一个 AUR 账户的 SSH key。
+
+```bash
+# 稳定版
+just aur-srcinfo                # 重新生成 aur/.SRCINFO
+just aur-release VERSION        # 更新版本号 + 推送
+
+# 每夜构建
+just aur-nightly-srcinfo        # 重新生成 aur-nightly/.SRCINFO
+just aur-nightly-release DATE   # 更新日期版本号（YYYYMMDD）+ 推送
+```
 
 ### Automated publishing
 
-`release.yml` 会在发布版本后自动更新 AUR 包（`aur` job）。流程：
+`release.yml` 和 `nightly.yml` 各自的 `aur` job 会在发布后自动更新对应 AUR 包：
 
-1. 更新 `aur/PKGBUILD` 中的 `pkgver`、重置 `pkgrel=1`
+1. 更新 `PKGBUILD` 中的 `pkgver`（稳定版用 tag 版本号，nightly 用当前日期 `YYYYMMDD`）、重置 `pkgrel=1`
 2. 用 Arch Linux Docker 容器运行 `makepkg --printsrcinfo` 生成 `.SRCINFO`
-3. `git subtree push` 推送到 `ssh://aur@aur.archlinux.org/clip-cli-bin.git`
+3. `git subtree push` 推送到对应 AUR 仓库
 
 **前置条件**：GitHub 仓库需要配置 secret `AUR_SSH_PRIVATE_KEY`（对应已上传到 AUR 账户的公钥）。
 

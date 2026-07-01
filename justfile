@@ -90,3 +90,24 @@ aur-release VERSION:
     git add aur/
     git commit -m "chore: update AUR to v{{VERSION}}"
     git subtree push --prefix=aur aur master
+
+# ─── Nightly AUR ───────────────────────────────────────
+
+# 重新生成 aur-nightly/.SRCINFO
+aur-nightly-srcinfo:
+    cd aur-nightly && makepkg --printsrcinfo > .SRCINFO
+
+# 提交 aur-nightly/ 变更并推送到 Nightly AUR
+aur-nightly-push:
+    git add aur-nightly/
+    git commit -m "chore: update nightly AUR package"
+    git subtree push --prefix=aur-nightly aur-nightly master
+
+# 发布 Nightly AUR（自动更新日期版本号 + 推送）
+aur-nightly-release DATE:
+    sed -i 's/^pkgver=.*/pkgver={{DATE}}/' aur-nightly/PKGBUILD
+    sed -i 's/^pkgrel=.*/pkgrel=1/' aur-nightly/PKGBUILD
+    cd aur-nightly && makepkg --printsrcinfo > .SRCINFO
+    git add aur-nightly/
+    git commit -m "chore: update nightly AUR to {{DATE}}"
+    git subtree push --prefix=aur-nightly aur-nightly master
