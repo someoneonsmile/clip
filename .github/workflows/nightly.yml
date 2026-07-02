@@ -102,10 +102,11 @@ jobs:
       - name: Regenerate .SRCINFO
         run: |
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
             -v "${{ github.workspace }}/aur-nightly:/work" \
             -w /work \
             archlinux:latest \
-            bash -c "useradd -m build && su build -c 'makepkg --printsrcinfo'" > aur-nightly/.SRCINFO
+            makepkg --printsrcinfo > aur-nightly/.SRCINFO
 
       - name: Configure SSH for AUR
         run: |
