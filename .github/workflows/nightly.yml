@@ -14,15 +14,16 @@ jobs:
     outputs:
       proceed: ${{ steps.check.outputs.proceed }}
     steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
       - name: Check for changes since last nightly
         id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if git rev-parse --verify nightly >/dev/null 2>&1; then
-            if [ "$(git rev-parse nightly)" = "$(git rev-parse HEAD)" ]; then
+          NIGHTLY_SHA=$(gh api repos/${{ github.repository }}/git/ref/tags/nightly \
+            --jq '.object.sha' 2>/dev/null) || true
+
+          if [ -n "$NIGHTLY_SHA" ]; then
+            if [ "$NIGHTLY_SHA" = "${{ github.sha }}" ]; then
               echo "proceed=false" >> "$GITHUB_OUTPUT"
               echo "No changes since last nightly, skipping."
             else
