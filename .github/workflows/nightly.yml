@@ -105,10 +105,7 @@ jobs:
             -v "${{ github.workspace }}/aur-nightly:/work" \
             -w /work \
             archlinux:latest \
-            makepkg --printsrcinfo > aur-nightly/.SRCINFO
-
-      - name: Fix file ownership (Docker writes as root)
-        run: sudo chown -R "$(id -u):$(id -g)" aur-nightly/
+            bash -c "useradd -m build && su build -c 'makepkg --printsrcinfo'" > aur-nightly/.SRCINFO
 
       - name: Configure SSH for AUR
         run: |
