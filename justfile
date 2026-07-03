@@ -55,9 +55,10 @@ fix-strict: fix lint-strict
 clean:
     cargo clean
 
-# 安装到系统（~/.cargo/bin/clip）
+# 安装到系统（/usr/bin/clip）
 install:
-    cargo install --path .
+    cargo build --release
+    sudo install -m 755 target/release/clip /usr/bin/clip
 
 # 监听文件变更，自动 check
 watch:
