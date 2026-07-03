@@ -104,11 +104,14 @@ aur-nightly-push:
     git commit -m "chore: update nightly AUR package"
     git subtree push --prefix=aur-nightly aur-nightly master
 
-# 发布 Nightly AUR（自动更新日期版本号 + 推送）
-aur-nightly-release DATE:
-    sed -i 's/^pkgver=.*/pkgver={{DATE}}/' aur-nightly/PKGBUILD
+# 发布 Nightly AUR（自动使用当前日期作为版本号 + 推送）
+aur-nightly-release:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    DATE=$(date +%Y%m%d)
+    sed -i "s/^pkgver=.*/pkgver=$DATE/" aur-nightly/PKGBUILD
     sed -i 's/^pkgrel=.*/pkgrel=1/' aur-nightly/PKGBUILD
     cd aur-nightly && makepkg --printsrcinfo > .SRCINFO
     git add aur-nightly/
-    git commit -m "chore: update nightly AUR to {{DATE}}"
+    git commit -m "chore: update nightly AUR to $DATE"
     git subtree push --prefix=aur-nightly aur-nightly master
