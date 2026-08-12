@@ -1,4 +1,6 @@
 use arboard::Clipboard;
+#[cfg(target_os = "linux")]
+use arboard::SetExtLinux;
 use base64::Engine;
 use clap::{Parser, Subcommand};
 use is_terminal::IsTerminal;
@@ -86,16 +88,13 @@ fn store() -> Vec<u8> {
         write_osc52(&content);
     } else {
         // 本地环境：尝试写入系统剪贴板
-        match Clipboard::new() {
-            Ok(mut cb) => {
-                let text = String::from_utf8_lossy(&content).into_owned();
-                if let Err(e) = cb.set_text(text) {
-                    eprintln!("system clipboard unavailable: {}", e);
-                }
-            }
-            Err(e) => {
-                eprintln!("system clipboard unavailable: {}", e);
-            }
+        // Linux 上使用 SetExtLinux::wait_until() 确保剪贴板数据在进程退出前被同步
+        // （避免 X11/Wayland 的 selection ownership 机制导致数据过早丢失）
+        let clipboard_ok = try_set_clipboard(&content);
+
+        // 系统剪贴板不可用时，回退到 OSC52（兼容纯 Wayland 合成器等场景）
+        if !clipboard_ok {
+            write_osc52(&content);
         }
 
         // 文件缓存作为可靠回退
@@ -184,5 +183,45 @@ fn write_osc52(content: &[u8]) {
         // 回退到 stderr（比 stdout 更可靠，因为 stdout 可能在管道中被消费）
         let _ = io::stderr().write_all(osc52.as_bytes());
         let _ = io::stderr().flush();
+    }
+}
+
+/// 尝试写入系统剪贴板。返回 true 表示成功。
+/// Linux 上使用 wait_until 确保 selection ownership 在进程退出前被转移。
+/// macOS/Windows 上直接调用 set_text。
+fn try_set_clipboard(content: &[u8]) -> bool {
+    let mut cb = match Clipboard::new() {
+        Ok(cb) => cb,
+        Err(e) => {
+            eprintln!("system clipboard unavailable: {}", e);
+            return false;
+        }
+    };
+    let text = String::from_utf8_lossy(content).into_owned();
+
+    #[cfg(target_os = "linux")]
+    {
+        // Linux 剪贴板基于 selection ownership 机制：
+        // 拷贝者持有数据，按需提供。进程退出则数据丢失。
+        // wait_until() 会阻塞至多 500ms 等待剪贴板管理器或其他进程接管数据，
+        // 避免「复制后立即退出但数据还没被请求」导致丢失。
+        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(500);
+        match cb.set().wait_until(deadline).text(text) {
+            Ok(()) => true,
+            Err(e) => {
+                eprintln!("system clipboard unavailable: {}", e);
+                false
+            }
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        match cb.set_text(text) {
+            Ok(()) => true,
+            Err(e) => {
+                eprintln!("system clipboard unavailable: {}", e);
+                false
+            }
+        }
     }
 }
