@@ -164,4 +164,8 @@ jobs:
           git add aur-nightly/
           git commit -m "chore: update nightly AUR to ${PKGVER}" || echo "No changes to commit"
           git remote add aur-nightly ssh://aur@aur.archlinux.org/clip-cli-nightly-bin.git
-          git subtree push --prefix=aur-nightly aur-nightly master
+          for i in 1 2 3; do
+            git subtree push --prefix=aur-nightly aur-nightly master && break
+            echo "Push attempt $i failed, retrying in 10s..."
+            sleep 10
+          done
