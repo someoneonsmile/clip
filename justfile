@@ -78,19 +78,36 @@ aur-srcinfo:
     cd aur && makepkg --printsrcinfo > .SRCINFO
 
 # 提交 aur/ 变更并推送到 AUR
+# AUR 禁止 force push，使用 clone → 更新文件 → commit → push 的可靠方式
 aur-push:
+    #!/usr/bin/env bash
+    set -euo pipefail
     git add aur/
-    git commit -m "chore: update AUR package"
-    git subtree push --prefix=aur aur master
+    git commit -m "chore: update AUR package" || true
+    TMP=$(mktemp -d)
+    trap 'rm -rf "$TMP"' EXIT
+    git clone ssh://aur@aur.archlinux.org/clip-cli-bin.git "$TMP"
+    cp aur/PKGBUILD aur/.SRCINFO "$TMP/"
+    git -C "$TMP" add -A
+    git -C "$TMP" commit -m "chore: update AUR package" || true
+    git -C "$TMP" push origin master
 
 # 发布新版本到 AUR（自动更新版本号 + 推送）
 aur-release VERSION:
+    #!/usr/bin/env bash
+    set -euo pipefail
     sed -i 's/^pkgver=.*/pkgver={{VERSION}}/' aur/PKGBUILD
     sed -i 's/^pkgrel=.*/pkgrel=1/' aur/PKGBUILD
-    cd aur && makepkg --printsrcinfo > .SRCINFO
+    (cd aur && makepkg --printsrcinfo > .SRCINFO)
     git add aur/
-    git commit -m "chore: update AUR to v{{VERSION}}"
-    git subtree push --prefix=aur aur master
+    git commit -m "chore: update AUR to v{{VERSION}}" || true
+    TMP=$(mktemp -d)
+    trap 'rm -rf "$TMP"' EXIT
+    git clone ssh://aur@aur.archlinux.org/clip-cli-bin.git "$TMP"
+    cp aur/PKGBUILD aur/.SRCINFO "$TMP/"
+    git -C "$TMP" add -A
+    git -C "$TMP" commit -m "chore: update AUR to v{{VERSION}}" || true
+    git -C "$TMP" push origin master
 
 # ─── Nightly AUR ───────────────────────────────────────
 
@@ -99,10 +116,19 @@ aur-nightly-srcinfo:
     cd aur-nightly && makepkg --printsrcinfo > .SRCINFO
 
 # 提交 aur-nightly/ 变更并推送到 Nightly AUR
+# AUR 禁止 force push，使用 clone → 更新文件 → commit → push 的可靠方式
 aur-nightly-push:
+    #!/usr/bin/env bash
+    set -euo pipefail
     git add aur-nightly/
-    git commit -m "chore: update nightly AUR package"
-    git subtree push --prefix=aur-nightly aur-nightly master
+    git commit -m "chore: update nightly AUR package" || true
+    TMP=$(mktemp -d)
+    trap 'rm -rf "$TMP"' EXIT
+    git clone ssh://aur@aur.archlinux.org/clip-cli-nightly-bin.git "$TMP"
+    cp aur-nightly/PKGBUILD aur-nightly/.SRCINFO "$TMP/"
+    git -C "$TMP" add -A
+    git -C "$TMP" commit -m "chore: update nightly AUR package" || true
+    git -C "$TMP" push origin master
 
 # 发布 Nightly AUR（自动使用当前日期作为版本号 + 推送）
 aur-nightly-release:
@@ -111,7 +137,13 @@ aur-nightly-release:
     DATE=$(date +%Y%m%d)
     sed -i "s/^pkgver=.*/pkgver=$DATE/" aur-nightly/PKGBUILD
     sed -i 's/^pkgrel=.*/pkgrel=1/' aur-nightly/PKGBUILD
-    cd aur-nightly && makepkg --printsrcinfo > .SRCINFO
+    (cd aur-nightly && makepkg --printsrcinfo > .SRCINFO)
     git add aur-nightly/
-    git commit -m "chore: update nightly AUR to $DATE"
-    git subtree push --prefix=aur-nightly aur-nightly master
+    git commit -m "chore: update nightly AUR to $DATE" || true
+    TMP=$(mktemp -d)
+    trap 'rm -rf "$TMP"' EXIT
+    git clone ssh://aur@aur.archlinux.org/clip-cli-nightly-bin.git "$TMP"
+    cp aur-nightly/PKGBUILD aur-nightly/.SRCINFO "$TMP/"
+    git -C "$TMP" add -A
+    git -C "$TMP" commit -m "chore: update nightly AUR to $DATE" || true
+    git -C "$TMP" push origin master

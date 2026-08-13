@@ -69,7 +69,7 @@ Dependencies: `arboard` (system clipboard), `base64`, `clap` (derive), `is-termi
 | `clip-cli-bin` (稳定版) | `aur/` | `aur` → `clip-cli-bin.git` | `release.yml` (tag `v*`) |
 | `clip-cli-nightly-bin` (每夜构建) | `aur-nightly/` | `aur-nightly` → `clip-cli-nightly-bin.git` | `nightly.yml` (每日 cron) |
 
-两者通过 `git subtree` 维护，共享同一个 AUR 账户的 SSH key。
+两者通过「clone AUR 仓库 → 复制 `PKGBUILD`/`.SRCINFO` → commit → push」维护（AUR 禁止 force push，clone 保证 push 可 fast-forward），共享同一个 AUR 账户的 SSH key。
 
 ```bash
 # 稳定版
@@ -85,9 +85,9 @@ just aur-nightly-release DATE   # 更新日期版本号（YYYYMMDD）+ 推送
 
 `release.yml` 和 `nightly.yml` 各自的 `aur` job 会在发布后自动更新对应 AUR 包：
 
-1. 更新 `PKGBUILD` 中的 `pkgver`（稳定版用 tag 版本号，nightly 用当前日期 `YYYYMMDD`）、重置 `pkgrel=1`
+1. 更新 `PKGBUILD` 中的 `pkgver`（稳定版用 tag 版本号，nightly 用 `CARGO_VER+nightly+日期+g短SHA`）、重置 `pkgrel=1`
 2. 用 Arch Linux Docker 容器运行 `makepkg --printsrcinfo` 生成 `.SRCINFO`
-3. `git subtree push` 推送到对应 AUR 仓库
+3. clone 对应 AUR 仓库，复制 `PKGBUILD` + `.SRCINFO`，commit 后 push 到 AUR 仓库
 
 **前置条件**：GitHub 仓库需要配置 secret `AUR_SSH_PRIVATE_KEY`（对应已上传到 AUR 账户的公钥）。
 

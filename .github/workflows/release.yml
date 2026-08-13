@@ -79,6 +79,7 @@ jobs:
           VERSION="${VERSION#v}"
           sed -i "s/^pkgver=.*/pkgver=${VERSION}/" aur/PKGBUILD
           sed -i 's/^pkgrel=.*/pkgrel=1/' aur/PKGBUILD
+          echo "AUR pkgver: ${VERSION}"
 
       - name: Regenerate .SRCINFO
         run: |
@@ -102,10 +103,33 @@ jobs:
           chmod 600 ~/.ssh/config
 
       - name: Push to AUR
+        env:
+          AUR_REPO: ssh://aur@aur.archlinux.org/clip-cli-bin.git
         run: |
           VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
           git add aur/
           git commit -m "chore: update AUR to ${VERSION}" || echo "No changes to commit"
-          git remote add aur ssh://aur@aur.archlinux.org/clip-cli-bin.git
-          git subtree push --prefix=aur aur master
+
+          # clone AUR 仓库拿到完整历史（保证 fast-forward，AUR 禁止 force push），复制文件后推送
+          TMP=$(mktemp -d)
+          git clone "${AUR_REPO}" "$TMP"
+          cp aur/PKGBUILD aur/.SRCINFO "$TMP/"
+          git -C "$TMP" add -A
+          git -C "$TMP" config user.name "GitHub Actions"
+          git -C "$TMP" config user.email "actions@github.com"
+          git -C "$TMP" commit -m "chore: update to ${VERSION}" || echo "No changes"
+          for i in 1 2 3; do
+            if git -C "$TMP" push origin master; then
+              echo "AUR push succeeded"
+              break
+            fi
+            echo "Push attempt $i failed, retrying in 10s..."
+            sleep 10
+            if [ "$i" -eq 3 ]; then
+              echo "::error::AUR push failed after 3 attempts"
+              exit 1
+            fi
+          done
+          rm -rf "$TMP"
 

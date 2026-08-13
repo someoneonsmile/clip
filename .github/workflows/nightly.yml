@@ -157,15 +157,33 @@ jobs:
           chmod 600 ~/.ssh/config
 
       - name: Push to AUR nightly
+        env:
+          AUR_REPO: ssh://aur@aur.archlinux.org/clip-cli-nightly-bin.git
         run: |
           CARGO_VER=$(awk -F'"' '/^version = /{print $2; exit}' Cargo.toml)
           SHORT_SHA=$(git rev-parse --short=8 HEAD)
           PKGVER="${CARGO_VER}+nightly+$(date +%Y%m%d)+g${SHORT_SHA}"
           git add aur-nightly/
           git commit -m "chore: update nightly AUR to ${PKGVER}" || echo "No changes to commit"
-          git remote add aur-nightly ssh://aur@aur.archlinux.org/clip-cli-nightly-bin.git
+
+          # clone AUR 仓库拿到完整历史（保证 fast-forward，AUR 禁止 force push），复制文件后推送
+          TMP=$(mktemp -d)
+          git clone "${AUR_REPO}" "$TMP"
+          cp aur-nightly/PKGBUILD aur-nightly/.SRCINFO "$TMP/"
+          git -C "$TMP" add -A
+          git -C "$TMP" config user.name "GitHub Actions"
+          git -C "$TMP" config user.email "actions@github.com"
+          git -C "$TMP" commit -m "chore: update to ${PKGVER}" || echo "No changes"
           for i in 1 2 3; do
-            git subtree push --prefix=aur-nightly aur-nightly master && break
+            if git -C "$TMP" push origin master; then
+              echo "AUR push succeeded"
+              break
+            fi
             echo "Push attempt $i failed, retrying in 10s..."
             sleep 10
+            if [ "$i" -eq 3 ]; then
+              echo "::error::AUR push failed after 3 attempts"
+              exit 1
+            fi
           done
+          rm -rf "$TMP"
