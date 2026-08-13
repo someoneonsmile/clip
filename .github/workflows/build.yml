@@ -55,6 +55,7 @@ jobs:
 
       - name: Override version for nightly
         if: inputs.version_suffix != ''
+        shell: bash
         run: |
           CURRENT=$(awk -F'"' '/^version = /{print $2; exit}' Cargo.toml)
           NEW="${CURRENT}${{ inputs.version_suffix }}"
