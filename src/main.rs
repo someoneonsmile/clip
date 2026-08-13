@@ -10,6 +10,9 @@ use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::process;
 
+/// daemonize 模式标记参数。正常用户不会传入，仅用于重新 exec 自身时识别后台持有进程。
+const DAEMONIZE_ARG: &str = "__clip_internal_daemonize";
+
 #[derive(Parser)]
 #[command(
     name = "clip",
@@ -30,6 +33,13 @@ enum Command {
 }
 
 fn main() {
+    // 后台持有进程：在 clap 解析参数前拦截，因为该标记并非合法子命令
+    #[cfg(target_os = "linux")]
+    if env::args().nth(1).as_deref() == Some(DAEMONIZE_ARG) {
+        daemonize();
+        return;
+    }
+
     let cli = Cli::parse();
 
     match cli.command {
@@ -88,8 +98,7 @@ fn store() -> Vec<u8> {
         write_osc52(&content);
     } else {
         // 本地环境：尝试写入系统剪贴板
-        // Linux 上使用 SetExtLinux::wait_until() 确保剪贴板数据在进程退出前被同步
-        // （避免 X11/Wayland 的 selection ownership 机制导致数据过早丢失）
+        // X11 下通过后台 daemon 持有数据，避免进程退出后 selection 丢失（见 try_set_clipboard）
         let clipboard_ok = try_set_clipboard(&content);
 
         // 系统剪贴板不可用时，回退到 OSC52（兼容纯 Wayland 合成器等场景）
@@ -186,10 +195,27 @@ fn write_osc52(content: &[u8]) {
     }
 }
 
-/// 尝试写入系统剪贴板。返回 true 表示成功。
-/// Linux 上使用 wait_until 确保 selection ownership 在进程退出前被转移。
-/// macOS/Windows 上直接调用 set_text。
+/// 尝试写入系统剪贴板。返回 true 表示成功（或已交由后台 daemon 处理）。
 fn try_set_clipboard(content: &[u8]) -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        if is_wayland() {
+            // Wayland：数据由 compositor 持有，进程退出不丢，直接写入即可
+            set_clipboard_direct(content)
+        } else {
+            // X11：spawn 后台 daemon 持有数据，避免进程退出后 selection 丢失
+            spawn_clipboard_daemon(content)
+        }
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        // macOS/Windows：系统剪贴板由 OS 持久持有，直接写入即可
+        set_clipboard_direct(content)
+    }
+}
+
+/// 直接调用 arboard 写入系统剪贴板（不等待），适用于数据由 OS/compositor 持久持有的平台。
+fn set_clipboard_direct(content: &[u8]) -> bool {
     let mut cb = match Clipboard::new() {
         Ok(cb) => cb,
         Err(e) => {
@@ -198,30 +224,75 @@ fn try_set_clipboard(content: &[u8]) -> bool {
         }
     };
     let text = String::from_utf8_lossy(content).into_owned();
-
-    #[cfg(target_os = "linux")]
-    {
-        // Linux 剪贴板基于 selection ownership 机制：
-        // 拷贝者持有数据，按需提供。进程退出则数据丢失。
-        // wait_until() 会阻塞至多 500ms 等待剪贴板管理器或其他进程接管数据，
-        // 避免「复制后立即退出但数据还没被请求」导致丢失。
-        let deadline = std::time::Instant::now() + std::time::Duration::from_millis(500);
-        match cb.set().wait_until(deadline).text(text) {
-            Ok(()) => true,
-            Err(e) => {
-                eprintln!("system clipboard unavailable: {}", e);
-                false
-            }
+    match cb.set_text(text) {
+        Ok(()) => true,
+        Err(e) => {
+            eprintln!("system clipboard unavailable: {}", e);
+            false
         }
     }
-    #[cfg(not(target_os = "linux"))]
-    {
-        match cb.set_text(text) {
-            Ok(()) => true,
-            Err(e) => {
-                eprintln!("system clipboard unavailable: {}", e);
-                false
-            }
+}
+
+/// 检测是否为 Wayland 会话。arboard 在 Linux 下优先用 Wayland data-control（存在 WAYLAND_DISPLAY 时），
+/// 回退 X11。
+#[cfg(target_os = "linux")]
+fn is_wayland() -> bool {
+    env::var_os("WAYLAND_DISPLAY").is_some()
+}
+
+/// X11 下 spawn 后台 daemon 进程（重新 exec 自身）持有剪贴板，避免主进程退出后数据丢失。
+/// daemon 会一直存活直到剪贴板被其他进程覆盖。返回 spawn 是否成功。
+#[cfg(target_os = "linux")]
+fn spawn_clipboard_daemon(content: &[u8]) -> bool {
+    let exe = match env::current_exe() {
+        Ok(exe) => exe,
+        Err(e) => {
+            eprintln!("failed to locate current executable: {}", e);
+            return false;
         }
+    };
+
+    let mut child = match process::Command::new(exe)
+        .arg(DAEMONIZE_ARG)
+        .stdin(process::Stdio::piped())
+        .stdout(process::Stdio::null())
+        .stderr(process::Stdio::null())
+        .current_dir("/")
+        .spawn()
+    {
+        Ok(child) => child,
+        Err(e) => {
+            eprintln!("failed to spawn clipboard daemon: {}", e);
+            return false;
+        }
+    };
+
+    // 通过 stdin 将内容传给 daemon；写入后关闭写端，daemon 读到 EOF 后开始持有剪贴板
+    if let Some(mut stdin) = child.stdin.take()
+        && stdin.write_all(content).is_err()
+    {
+        return false;
+    }
+    true
+}
+
+/// daemon 进程入口：从 stdin 读取内容，写入剪贴板并持有直到被其他进程覆盖。
+#[cfg(target_os = "linux")]
+fn daemonize() {
+    let mut data = Vec::new();
+    if io::stdin().read_to_end(&mut data).is_err() {
+        process::exit(1);
+    }
+    let text = String::from_utf8_lossy(&data).into_owned();
+
+    // wait() 会阻塞直到剪贴板被覆盖（收到 SelectionClear），此时 daemon 自动退出
+    let result: Result<(), arboard::Error> = (|| {
+        let mut cb = Clipboard::new()?;
+        cb.set().wait().text(text)
+    })();
+
+    if let Err(e) = result {
+        eprintln!("clipboard daemon failed: {}", e);
+        process::exit(1);
     }
 }
