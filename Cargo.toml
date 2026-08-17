@@ -5,6 +5,6 @@ edition = "2024"
 
 [dependencies]
 arboard = { version = "3", features = ["wayland-data-control"] }
-base64 = "0.22"
+base64 = "0.23"
 clap = { version = "4", features = ["derive"] }
 is-terminal = "0.4"
