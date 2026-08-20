@@ -53,6 +53,8 @@ jobs:
 
       - name: Delete old versioned release (in case tag was moved)
         run: gh release delete ${{ github.ref_name }} --yes || true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Publish versioned release
         uses: softprops/action-gh-release@v3

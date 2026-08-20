@@ -116,6 +116,8 @@ jobs:
 
       - name: Delete old nightly rolling release
         run: gh release delete nightly --cleanup-tag --yes || true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Publish nightly rolling release
         uses: softprops/action-gh-release@v3
