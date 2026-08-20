@@ -55,10 +55,18 @@ fix-strict: fix lint-strict
 clean:
     cargo clean
 
-# 安装到系统（/usr/bin/clip）
+# 安装到系统（/usr/local/bin/clip）
+DESTDIR := ""
+PREFIX := "/usr/local"
+BINDIR := PREFIX / "bin"
+
 install:
     cargo build --release
-    sudo install -m 755 target/release/clip /usr/bin/clip
+    sudo install -Dm755 target/release/clip "{{ DESTDIR }}{{ BINDIR }}/clip"
+
+# 从系统中卸载 clip
+uninstall:
+    sudo rm -f "{{ DESTDIR }}{{ BINDIR }}/clip"
 
 # 监听文件变更，自动 check
 watch:
