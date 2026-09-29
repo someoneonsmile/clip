@@ -10,9 +10,9 @@ pkgbase = clip-cli-nightly-bin
 	conflicts = clip
 	conflicts = clip-bin
 	conflicts = clip-cli-bin
-	source_x86_64 = https://github.com/someoneonsmile/clip/releases/download/nightly/clip-x86_64-linux-gnu
+	source_x86_64 = clip-20260701-x86_64-linux-gnu::https://github.com/someoneonsmile/clip/releases/download/nightly/clip-x86_64-linux-gnu
 	sha256sums_x86_64 = SKIP
-	source_aarch64 = https://github.com/someoneonsmile/clip/releases/download/nightly/clip-aarch64-linux-gnu
+	source_aarch64 = clip-20260701-aarch64-linux-gnu::https://github.com/someoneonsmile/clip/releases/download/nightly/clip-aarch64-linux-gnu
 	sha256sums_aarch64 = SKIP
 
 pkgname = clip-cli-nightly-bin
