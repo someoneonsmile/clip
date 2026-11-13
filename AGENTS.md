@@ -15,7 +15,7 @@ just lint         # cargo clippy
 just lint-strict  # cargo clippy -- -D warnings
 just fix          # cargo clippy --fix --allow-dirty
 just ci           # full gate: fmt-check → lint-strict → test → release build
-just install      # cargo install --path . → ~/.cargo/bin/clip
+just install      # 构建 release 并安装到 /usr/local/bin（含 shell 补全 + man）
 ```
 
 Run with args: `just run -- --help` or `just run-release -- --help`.
@@ -41,15 +41,19 @@ Run with args: `just run -- --help` or `just run-release -- --help`.
 | `x86_64-unknown-linux-gnu` | ubuntu-latest | native |
 | `x86_64-unknown-linux-musl` | ubuntu-latest | uses `cross` tool, not cargo |
 | `aarch64-unknown-linux-gnu` | ubuntu-24.04-arm | native |
-| `x86_64-apple-darwin` | macos-latest | native |
-| `aarch64-apple-darwin` | macos-latest | native |
+| `x86_64-apple-darwin` | macos-26-intel | native |
+| `aarch64-apple-darwin` | macos-26 | native |
 | `x86_64-pc-windows-msvc` | windows-latest | native |
 
-Artifact naming: `clip-{target}.exe` on Windows, `clip-{target}` elsewhere.
+Artifact: `{asset}.tar.gz`，内含二进制、`complete/`（bash/zsh/fish/elvish 补全）、`man/`、README、LICENSE。
 
 ## Architecture
 
-Single file `src/main.rs`:
+- `src/main.rs`: 业务逻辑
+- `src/cli_types.rs`: clap 定义，被 `main.rs` 和 `build.rs` 同时使用 —— 只能依赖 clap 与标准库，不能出现 `use crate::...`
+- `build.rs`: 从 `src/cli_types.rs` 生成 shell 补全 + man 手册页（由 `SHELL_HELP_DIR` 控制，普通 `cargo build` 不生成）
+
+`src/main.rs`:
 
 - **`main()`**: auto-detect mode — if stdin is a TTY → read clipboard; otherwise → store + tee to stdout
 - **`store()`**: read stdin → strip trailing `\n` → write system clipboard (local) → always write file cache → OSC52 if SSH
@@ -78,14 +82,14 @@ just aur-release VERSION        # 更新版本号 + 推送
 
 # 每夜构建
 just aur-nightly-srcinfo        # 重新生成 aur-nightly/.SRCINFO
-just aur-nightly-release DATE   # 更新日期版本号（YYYYMMDD）+ 推送
+just aur-nightly-release        # 用完整 nightly 版本号公式更新 + 推送
 ```
 
 ### Automated publishing
 
 `release.yml` 和 `nightly.yml` 各自的 `aur` job 会在发布后自动更新对应 AUR 包：
 
-1. 更新 `PKGBUILD` 中的 `pkgver`（稳定版用 tag 版本号，nightly 用 `CARGO_VER+nightly+日期+g短SHA`）、重置 `pkgrel=1`
+1. 更新 `PKGBUILD` 中的 `pkgver`（稳定版用 tag 版本号，nightly 用 `CARGO_VER+nightly+日期+提交数+g短SHA`）、重置 `pkgrel=1`
 2. 用 Arch Linux Docker 容器运行 `makepkg --printsrcinfo` 生成 `.SRCINFO`
 3. clone 对应 AUR 仓库，复制 `PKGBUILD` + `.SRCINFO`，commit 后 push 到 AUR 仓库
 

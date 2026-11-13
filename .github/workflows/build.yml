@@ -7,10 +7,12 @@ on:
         required: false
         type: string
         default: ''
-        description: 'Appended to Cargo.toml version (e.g. "-nightly-20260813-6-gfc18cbf")'
+        description: 'Appended to Cargo.toml version (e.g. "-nightly-20261113-6-gabc12345")'
 
 jobs:
   build:
+    env:
+      SHELL_HELP_DIR: shell_help
     strategy:
       fail-fast: false
       matrix:
@@ -24,15 +26,16 @@ jobs:
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
             asset: clip-aarch64-linux-gnu
-          - os: macos-latest
+          # macOS：macos-26-intel 是 Intel(x86_64) 标准 runner，macos-26 是 Apple Silicon(arm64) 标准 runner
+          - os: macos-26-intel
             target: x86_64-apple-darwin
-            asset: clip-x86_64-macos
-          - os: macos-latest
+            asset: clip-x86_64-darwin
+          - os: macos-26
             target: aarch64-apple-darwin
-            asset: clip-aarch64-macos
+            asset: clip-aarch64-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            asset: clip-x86_64-windows.exe
+            asset: clip-x86_64-windows
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v7
@@ -71,15 +74,30 @@ jobs:
         if: matrix.target == 'x86_64-unknown-linux-musl'
         run: cross build --release --target ${{ matrix.target }}
 
-      - name: Prepare artifact (Unix)
-        if: runner.os != 'Windows'
-        run: cp target/${{ matrix.target }}/release/clip ${{ matrix.asset }}
+      - name: Package artifact
+        shell: bash
+        run: |
+          staging="${{ matrix.asset }}"
+          mkdir -p "$staging" artifacts
 
-      - name: Prepare artifact (Windows)
-        if: runner.os == 'Windows'
-        run: cp target/${{ matrix.target }}/release/clip.exe ${{ matrix.asset }}
+          # 复制二进制文件
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp "target/${{ matrix.target }}/release/clip.exe" "$staging/"
+          else
+            cp "target/${{ matrix.target }}/release/clip" "$staging/"
+          fi
+
+          # 复制 build.rs 生成的 shell 补全（bash/zsh/fish/elvish）与 man 手册页
+          cp -r "${SHELL_HELP_DIR}/complete" "$staging/"
+          cp -r "${SHELL_HELP_DIR}/man" "$staging/"
+
+          # 复制 README 和 LICENSE
+          cp README.md LICENSE "$staging/"
+
+          # 打包为 tar.gz
+          tar czf "artifacts/$staging.tar.gz" "$staging"
 
       - uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.asset }}
-          path: ${{ matrix.asset }}
+          path: artifacts/${{ matrix.asset }}.tar.gz

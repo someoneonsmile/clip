@@ -1,8 +1,11 @@
+mod cli_types;
+
 use arboard::Clipboard;
 #[cfg(target_os = "linux")]
 use arboard::SetExtLinux;
 use base64::Engine;
-use clap::{Parser, Subcommand};
+use clap::Parser;
+use cli_types::{Cli, Command};
 use is_terminal::IsTerminal;
 use std::env;
 use std::fs;
@@ -12,25 +15,6 @@ use std::process;
 
 /// daemonize 模式标记参数。正常用户不会传入，仅用于重新 exec 自身时识别后台持有进程。
 const DAEMONIZE_ARG: &str = "__clip_internal_daemonize";
-
-#[derive(Parser)]
-#[command(
-    name = "clip",
-    about = "System clipboard bridge — copy stdin to clipboard (like tee), paste clipboard to stdout.\n\nWhen no subcommand is given, mode is auto-detected:\n  piped input → copy + tee,  terminal → paste.",
-    version
-)]
-struct Cli {
-    #[command(subcommand)]
-    command: Option<Command>,
-}
-
-#[derive(Subcommand)]
-enum Command {
-    /// Copy stdin content to clipboard
-    Copy,
-    /// Paste clipboard content to stdout
-    Paste,
-}
 
 fn main() {
     // 后台持有进程：在 clap 解析参数前拦截，因为该标记并非合法子命令
