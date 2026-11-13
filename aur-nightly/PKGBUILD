@@ -8,6 +8,7 @@ pkgdesc="System clipboard bridge for the terminal — nightly build (pipe conten
 arch=('x86_64' 'aarch64')
 url="https://github.com/someoneonsmile/clip"
 license=('MIT')
+options=('!strip' '!debug')
 
 _source_base="${url}/releases/download/nightly"
 
